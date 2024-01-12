@@ -26,15 +26,16 @@ class MyHandler(BaseHTTPRequestHandler):
         post_data = urllib.parse.unquote(post_data.decode('utf-8'))
         
         query: Query = Query.deserialize(post_data)
-        
+
         database: Database = Database()
         database.generate_random()
 
-        database.search(query)
+        results: list = database.search(query)
+
+        serialized_result = ','.join(results)
 
         # Set the response content
-        response_content = f"Hello, custom Python web server (POST)!\nReceived data: {post_data}"
-        self.wfile.write(response_content.encode('utf-8'))
+        self.wfile.write(serialized_result.encode('utf-8'))
 
 
 def start_server():

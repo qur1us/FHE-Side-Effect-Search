@@ -4,13 +4,21 @@ from client import Client
 def main():
     client: Client = Client()
 
-    medicine = ['A', 'D']
+    # Test data
+    medicine = [1, 2]
+    side_effects = [2]
+    age = 40
+    gender = "male"
 
-    side_effects = [10]
+    query = client.prepare_query(medicine, side_effects, age, gender)
 
-    query = client.prepare_query(medicine, side_effects, 40, "male")
+    print(f"Medicine IDs: {medicine}")
+    print(f"Side effect IDs: {side_effects}")
+    print(f"Age: {age}")
+    print(f"Gender: {gender}")
 
-    # print(query.serialize())
+    #client.test(query)
+
 
     client.search("http://127.0.0.1:8000/", query.serialize())
 

@@ -24,6 +24,7 @@ class Client():
         self.encryptor = seal.Encryptor(self.context, keygen.create_public_key())
         self.decryptor = seal.Decryptor(self.context, keygen.secret_key())
 
+
     def prepare_query(self, medicine: list, side_effects: list, age: int, gender: str) -> Query:
         m = 0
         R = 5
@@ -33,7 +34,7 @@ class Client():
         elif gender == 'female':
             m = age + 128 + R
 
-        plain_m: seal.Plaintext = seal.Plaintext(m)
+        plain_m: seal.Plaintext = seal.Plaintext(hex(m)[2::])
         
         # Encrypt m
         encrypted_m: seal.Ciphertext = self.encryptor.encrypt(plain_m)
@@ -44,8 +45,31 @@ class Client():
     def search(self, endpoint: str, data: str):
         response: requests.Response = requests.post(endpoint, data=data)
         
-        # Deserialize ciphertext
-        #cipher = self.context.from_cipher_str(bytes.fromhex(response.decode()))
+        results = response.text.split(',')
 
+        hit = False
+
+        for result in results:
+            
+            # Deserialize ciphertext
+            entry = self.context.from_cipher_str(bytes.fromhex(result))
+            
+            # decrypt and decode ciphertext
+            decoded = self.encoder.decode(self.decryptor.decrypt(entry))[0]
+            
+            if decoded == 0:
+                print(f"[+] Entry found on index {results.index(result)}")
+                hit = True
+                
+        if not hit:
+            print("[x] Entry not found")
+
+
+    def test(self, query):
+        # Deserialize ciphertext
+        entry = self.context.from_cipher_str(bytes.fromhex(query.encrypted_m))
+        
         # decrypt and decode ciphertext
-        #decoded = self.encoder.decode(self.decryptor.decrypt(cipher))
+        decoded = self.encoder.decode(self.decryptor.decrypt(entry))[0]
+        
+        print(decoded)

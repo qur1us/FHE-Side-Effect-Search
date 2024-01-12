@@ -1,5 +1,6 @@
 import seal
 import random
+from faker import Faker
 
 from query import Query
 
@@ -25,27 +26,37 @@ class Database():
 
 
     def generate_random(self):
-       # List of medicines (A to F)
-        medicines = ['A', 'B', 'C', 'D', 'E', 'F']
+        # List of side effects (1 to 5)
+        medicines = list(range(1, 6))
 
-        # List of side effects (1 to 15)
-        side_effects = list(range(1, 11))
+        # List of side effects (1 to 5)
+        side_effects = list(range(1, 6))
 
         # List of genders
         genders = ['male', 'female']
 
-        # Create a list of 20 random entries
-        random_entries = []
+        # Random names generator
+        fake = Faker()
 
-        for _ in range(20):
-            num_side_effects = random.randint(1, 5)
+        for _ in range(100):
             entry = {
-                'medicine': random.choice(medicines),
-                'side_effects': random.sample(side_effects, k=num_side_effects),
+                'name': fake.name(),
+                'medicine': random.sample(medicines, k=random.randint(1, 5)),
+                'side_effects': random.sample(side_effects, k=random.randint(1, 5)),
                 'age': random.randint(1, 99),
                 'gender': random.choice(genders)
             }
             self.random_entries.append(entry)
+
+        test = {
+            'name': fake.name(),
+            'medicine': [1],
+            'side_effects': [2],
+            'age': 40,
+            'gender': 'male'
+        }
+
+        self.random_entries.append(test)
 
 
     def optimize_dataset(self, query) -> list:
@@ -56,12 +67,42 @@ class Database():
         matching_entries = []
 
         for entry in self.random_entries:
-            for medicine in search_medicines:
-                if medicine in entry['medicine']:
-                    if any(effect in entry['side_effects'] for effect in search_side_effects):
-                        matching_entries.append(entry)
+            # Check if any medicine matches the search criteria
+            if any(medicine in entry['medicine'] for medicine in search_medicines):
+                # Check if any side effect matches the search criteria
+                if any(effect in entry['side_effects'] for effect in search_side_effects):
+                    matching_entries.append(entry)
 
         return matching_entries
+    
+
+    def prepare_PIR_data(self, gender: str, age: int) -> int:
+        m = 0
+        R = 5
+
+        if gender == 'male':
+            m = age + R
+        elif gender == 'female':
+            m = age + 128 + R
+        
+        return m
+
+
+    def PIR_check(self, query: Query, entry: dict) -> seal.Ciphertext:
+        query_m = self.context.from_cipher_str(bytes.fromhex(query.encrypted_m))
+
+        m = self.prepare_PIR_data(entry['gender'], int(entry['age']))
+
+        entry_m = seal.Plaintext(hex(m)[2::])
+    
+        diff = self.evaluator.sub_plain(query_m, entry_m)
+
+        # Multiply difference by random number
+        r = self.encoder.encode([random.randint(1, 10000) for _ in range(m)])
+        result = self.evaluator.multiply_plain(diff, r)
+
+        return result
+
 
     def search(self, query: Query):
 
@@ -69,5 +110,14 @@ class Database():
 
         # Print the matching entries
         print("Matching Entries:")
-        for i, entry in enumerate(optimized_dataset, start=1):
+        for i, entry in enumerate(optimized_dataset, start=0):
             print(f"Entry {i}: {entry}")
+
+        results = []
+
+        for entry in optimized_dataset:
+            result: seal.Ciphertext = self.PIR_check(query, entry)
+            results.append(result.to_string().hex())
+
+        return results
+
