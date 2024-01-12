@@ -2,7 +2,7 @@ import seal
 import random
 from faker import Faker
 
-from query import Query
+from classes.query import Query
 
 class Database():
     def __init__(self):
@@ -38,7 +38,7 @@ class Database():
         # Random names generator
         fake = Faker()
 
-        for _ in range(100):
+        for _ in range(1000):
             entry = {
                 'name': fake.name(),
                 'medicine': random.sample(medicines, k=random.randint(1, 5)),
@@ -109,9 +109,9 @@ class Database():
         optimized_dataset = self.optimize_dataset(query)
 
         # Print the matching entries
-        print("Matching Entries:")
-        for i, entry in enumerate(optimized_dataset, start=0):
-            print(f"Entry {i}: {entry}")
+        # print("Matching Entries:")
+        # for i, entry in enumerate(optimized_dataset, start=0):
+        #     print(f"Entry {i}: {entry}")
 
         results = []
 

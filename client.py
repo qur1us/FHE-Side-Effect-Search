@@ -1,7 +1,7 @@
 import seal
 import requests
 
-from query import Query
+from classes.query import Query
 
 class Client():
     def __init__(self) -> None:

@@ -20,7 +20,7 @@ def main():
     #client.test(query)
 
 
-    client.search("http://127.0.0.1:8000/", query.serialize())
+    client.search("http://127.0.0.1:8000/query", query.serialize())
 
 if __name__ == '__main__':
     main()
