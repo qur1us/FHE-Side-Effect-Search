@@ -3,8 +3,8 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import ssl  # Import the ssl module
 
-from classes.database import Database
-from classes.query import Query
+from database import Database
+from query import Query
 
 IP_ADDRESS = '127.0.0.1'
 PORT = 8000

@@ -3,7 +3,7 @@ import seal
 import random
 from faker import Faker
 
-from classes.query import Query
+from query import Query
 
 
 class Database():

@@ -3,7 +3,7 @@ import json
 import urllib3
 import requests
 
-from classes.query import Query
+from query import Query
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
