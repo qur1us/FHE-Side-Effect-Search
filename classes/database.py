@@ -1,9 +1,10 @@
 import json
+import numpy as np
 import seal
 import random
 from faker import Faker
 
-from query import Query
+from classes.query import Query
 
 
 class Database():
@@ -24,15 +25,23 @@ class Database():
         # initialize evaluator that is used for evaluating operations on `seal.Ciphertext`
         self.evaluator = seal.Evaluator(self.context)
 
-        self.random_entries = []
+        self.random_dataset = []
+        self.optimized_dataset = []
 
 
     def generate_random(self):
-        # List of side effects (1 to 5)
-        medicines = list(range(1, 6))
+        # Parameters
+        NUM_MEDICINES = 200
+        NUM_SIDE_EFFECTS = 20
+        NUM_ENTRIES = 10000
+        MAX_PATIENT_MEDICINES = 10
+        MAX_PATIENT_SIDE_EFFECTS = 5
 
-        # List of side effects (1 to 5)
-        side_effects = list(range(1, 6))
+        # List of side effects
+        medicines_list = list(range(1, NUM_MEDICINES + 1))
+
+        # List of side effects
+        side_effect_list = list(range(1, NUM_SIDE_EFFECTS + 1))
 
         # List of genders
         genders = ['male', 'female']
@@ -43,13 +52,35 @@ class Database():
         # Random names generator
         fake = Faker()
 
+        # Create a matrix representing the probability of each medicine causing each side effect
+        correlation_matrix = np.random.rand(NUM_MEDICINES + 1, NUM_SIDE_EFFECTS + 1)
+        
         # Generate random dataset
-        for _ in range(1000):
+        for _ in range(NUM_ENTRIES):
             name = fake.name()
             age = random.randint(1, 99)
             gender = random.choice(genders)
-            medicine = random.sample(medicines, k=random.randint(1, 5))
-            side_effect = random.sample(side_effects, k=random.randint(1, 5))
+            
+            ######### IMPORTANT #########
+            # Here we apply the above matrix for probability distribution of one medicine to cause a specific side effect
+
+            # Generate random medicines
+            medicine = random.sample(medicines_list, k=random.randint(1, MAX_PATIENT_MEDICINES))
+
+            # Generate random number of side effects
+            side_effect_count = random.randint(1, MAX_PATIENT_SIDE_EFFECTS)
+
+            # Sum correlations of the generated medicines' side effects based on the correlation matrix
+            side_effect_probs = np.sum(correlation_matrix[medicine], axis=0)
+
+            # Normalize probabilities to ensure they sum to 1
+            side_effect_probs /= side_effect_probs.sum()
+            
+            # Use multinomial calculations to produce indexes of side effects based on probabilities calculated in "side_effect_probs"
+            side_effect_indices = np.random.multinomial(side_effect_count, side_effect_probs[:len(side_effect_list)], size=1).nonzero()[1]
+            
+            side_effect = [side_effect_list[i] for i in side_effect_indices]
+            
             action = f"{random.choice(actions)} {random.choice(medicine)}"
 
             entry = {
@@ -60,37 +91,21 @@ class Database():
                 'side_effects': side_effect,
                 'treatment' : action
             }
-            self.random_entries.append(entry)
-
-        test = {
-            'name': fake.name(),
-            'age': 40,
-            'gender': 'male',
-            'medicine': [1,4,5],
-            'side_effects': [2],
-            'treatment' : 'Stop 4'
-        }
-
-        self.random_entries.append(test)
+            
+            self.random_dataset.append(entry)
 
 
-    def optimize_dataset(self, query) -> list[dict]:
+    def optimize_dataset(self, query):
         search_medicines = query.medicine
         search_side_effects = query.side_effects
 
-        # Perform search
-        matching_entries = []
-
-        for entry in self.random_entries:
-            # Check if any medicine matches the search criteria
+        # Check if there is at least on medicine and side effect in the optimized dataset
+        for entry in self.random_dataset:
             if any(medicine in entry['medicine'] for medicine in search_medicines):
-                # Check if any side effect matches the search criteria
                 if any(effect in entry['side_effects'] for effect in search_side_effects):
-                    matching_entries.append(entry)
+                    self.optimized_dataset.append(entry)
 
-        return matching_entries
     
-
     def prepare_PIR_data(self, gender: str, age: int) -> int:
         m = 0
         R = 5
@@ -121,11 +136,11 @@ class Database():
 
     def search(self, query: Query):
 
-        optimized_dataset = self.optimize_dataset(query)
+        self.optimize_dataset(query)
 
         results = []
 
-        for entry in optimized_dataset:
+        for entry in self.optimized_dataset:
             result: seal.Ciphertext = self.PIR_check(query, entry)
             results.append(result.to_string().hex())
 
@@ -137,7 +152,10 @@ class Database():
         
         # Filter keys so no personal info is disclosed
         for index in indexes:
-            filtered_entry = {key: value for key, value in self.random_entries[index].items() if key not in ['name', 'age', 'gender']}
+            filtered_entry = {key: value for key, value in self.optimized_dataset[index].items() if key not in ['name', 'age', 'gender']}
             result.append(filtered_entry)
+
+        # Clear the optimized dataset, next query has to have a fresh instance
+        self.optimized_dataset.clear()
 
         return json.dumps(result)
