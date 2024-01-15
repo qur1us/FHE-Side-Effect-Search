@@ -2,29 +2,30 @@
 This is a project for my Modern Cryptography course at Brno University of Technology. The main goal of the project is to demonstrate a privacy preserving database query system. The project utilizes homomorphic encryption to query data from a database based on sensitive patient information without revealing it to the server that holds the database.
 
 
-Usage:
+## Usage
 
 ```
 $ python3 main.py --help 
 usage: main.py [-h] --age AGE --gender {male,female} --medicine-ids MEDICINE_IDS --side-effect-ids SIDE_EFFECT_IDS
-                       [--outfile OUTFILE]
-                       endpoint
+               [--outfile OUTFILE]
+               endpoint
 
-Medicine Side Effects CLI Parser
+Medicine Side Effects Search
 
 positional arguments:
   endpoint              Query system endpoint
 
 options:
   -h, --help            show this help message and exit
-  --age AGE             User's age
+  --age AGE             Patients's age
   --gender {male,female}
-                        User's gender
+                        Patients's gender
   --medicine-ids MEDICINE_IDS
                         Comma-separated list of medicine IDs
   --side-effect-ids SIDE_EFFECT_IDS
                         Comma-separated list of side effect IDs
   --outfile OUTFILE     Enable output to file
+
 ```
 
 Example:

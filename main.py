@@ -4,12 +4,12 @@ from classes.client import Client
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Medicine Side Effects CLI Parser")
+    parser = argparse.ArgumentParser(description="Medicine Side Effects Search")
 
     # Required arguments
     parser.add_argument("endpoint", help="Query system endpoint")
-    parser.add_argument("--age", type=int, required=True, help="User's age")
-    parser.add_argument("--gender", choices=["male", "female"], required=True, help="User's gender")
+    parser.add_argument("--age", type=int, required=True, help="Patients's age")
+    parser.add_argument("--gender", choices=["male", "female"], required=True, help="Patients's gender")
 
     # At least one value must be supplied for each list
     parser.add_argument("--medicine-ids", required=True, type=lambda x: [int(i) for i in x.split(',')], help="Comma-separated list of medicine IDs")
