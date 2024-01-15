@@ -1,4 +1,5 @@
 import seal
+import json
 import requests
 
 from classes.query import Query
@@ -45,9 +46,10 @@ class Client():
     def search(self, endpoint: str, data: str):
         response: requests.Response = requests.post(endpoint, data=data)
         
-        results = response.text.split(',')
+        results: list = json.loads(response.text)
 
-        hit = False
+        hit: bool = False
+        indexes: list = []
 
         for result in results:
             
@@ -58,11 +60,22 @@ class Client():
             decoded = self.encoder.decode(self.decryptor.decrypt(entry))[0]
             
             if decoded == 0:
-                print(f"[+] Entry found on index {results.index(result)}")
+                index: int = results.index(result)
+
+                print(f"[+] Entry found on index {index}")
+                
+                indexes.append(index)
                 hit = True
                 
         if not hit:
             print("[x] Entry not found")
+            exit(1)
+
+        data: str = json.dumps(indexes)
+
+        response: requests.Response = requests.get(endpoint +  '?indexes=' + data)
+
+        print(json.loads(response.text))
 
 
     def test(self, query):

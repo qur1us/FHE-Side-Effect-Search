@@ -1,3 +1,4 @@
+import json
 import seal
 import random
 from faker import Faker
@@ -108,11 +109,6 @@ class Database():
 
         optimized_dataset = self.optimize_dataset(query)
 
-        # Print the matching entries
-        # print("Matching Entries:")
-        # for i, entry in enumerate(optimized_dataset, start=0):
-        #     print(f"Entry {i}: {entry}")
-
         results = []
 
         for entry in optimized_dataset:
@@ -121,3 +117,14 @@ class Database():
 
         return results
 
+
+    def get_data(self, indexes: list) -> str:
+        result: list[dict] = []
+        
+        # Filter keys so no personal info is disclosed
+        for index in indexes:
+            filtered_entry = {key: value for key, value in self.random_entries[index].items() if key not in ['name', 'age', 'gender']}
+            result.append(filtered_entry)
+
+        return json.dumps(result)
+            
