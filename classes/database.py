@@ -36,25 +36,38 @@ class Database():
         # List of genders
         genders = ['male', 'female']
 
+        # List of actions
+        actions = ['Stop', 'Drink', 'Double']
+
         # Random names generator
         fake = Faker()
 
         for _ in range(1000):
+
+            name = fake.name()
+            age = random.randint(1, 99)
+            gender = random.choice(genders)
+            medicine = random.sample(medicines, k=random.randint(1, 5))
+            side_effect = random.sample(side_effects, k=random.randint(1, 5))
+            action = f"{random.choice(actions)} {random.choice(medicine)}"
+
             entry = {
-                'name': fake.name(),
-                'medicine': random.sample(medicines, k=random.randint(1, 5)),
-                'side_effects': random.sample(side_effects, k=random.randint(1, 5)),
-                'age': random.randint(1, 99),
-                'gender': random.choice(genders)
+                'name': name,
+                'age': age,
+                'gender': gender,
+                'medicine': medicine,
+                'side_effects': side_effect,
+                'treatment' : action
             }
             self.random_entries.append(entry)
 
         test = {
             'name': fake.name(),
-            'medicine': [1],
-            'side_effects': [2],
             'age': 40,
-            'gender': 'male'
+            'gender': 'male',
+            'medicine': [1,4,5],
+            'side_effects': [2],
+            'treatment' : 'Stop 4'
         }
 
         self.random_entries.append(test)
@@ -127,4 +140,3 @@ class Database():
             result.append(filtered_entry)
 
         return json.dumps(result)
-            

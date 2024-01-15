@@ -5,7 +5,7 @@ def main():
     client: Client = Client()
 
     # Test data
-    medicine = [1, 2]
+    medicine = [1, 2, 4]
     side_effects = [2]
     age = 40
     gender = "male"
