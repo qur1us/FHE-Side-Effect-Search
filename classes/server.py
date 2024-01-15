@@ -1,12 +1,15 @@
 import json
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import ssl  # Import the ssl module
 
 from classes.database import Database
 from classes.query import Query
 
 IP_ADDRESS = '127.0.0.1'
 PORT = 8000
+CERT_FILE = '/tmp/certificate.pem'
+KEY_FILE = '/tmp/private_key.pem'
 
 
 class Server():
@@ -25,7 +28,6 @@ class Server():
             if self.path.startswith('/query'):
                 self.post_handler()
             else:
-                # Handle other paths as needed
                 self.send_response(404)
                 self.end_headers()
                 self.wfile.write(b'Not Found')
@@ -35,7 +37,6 @@ class Server():
                 if self.path.startswith('/query'):
                     self.get_handler()
                 else:
-                    # Handle other paths as needed
                     self.send_response(404)
                     self.end_headers()
                     self.wfile.write(b'Not Found')
@@ -99,7 +100,15 @@ class Server():
 
     def start_server(self):
         server_address = (IP_ADDRESS, PORT)
+
+        # Create an SSL context
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
+
+
         httpd = HTTPServer(server_address, lambda request, client_address, server: self.ServerHTTPHandler(request, client_address, server, self.database))
+        httpd.socket = ssl_context.wrap_socket(httpd.socket, server_side=True)
+
 
         print(f"Server listening on port {PORT}...")
 

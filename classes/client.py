@@ -1,8 +1,12 @@
 import seal
 import json
+import urllib3
 import requests
 
 from classes.query import Query
+
+# Disable SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class Client():
     def __init__(self) -> None:
@@ -43,8 +47,8 @@ class Client():
         return Query(medicine, side_effects, encrypted_m.to_string().hex())
         
 
-    def search(self, endpoint: str, data: str):
-        response: requests.Response = requests.post(endpoint, data=data)
+    def search(self, endpoint: str, data: str) -> str:
+        response: requests.Response = requests.post(endpoint, data=data, verify=False)
         
         results: list = json.loads(response.text)
 
@@ -73,9 +77,11 @@ class Client():
 
         data: str = json.dumps(indexes)
 
-        response: requests.Response = requests.get(endpoint +  '?indexes=' + data)
+        response: requests.Response = requests.get(endpoint +  '?indexes=' + data, verify=False)
 
-        print(json.loads(response.text))
+        result = json.dumps(json.loads(response.text), indent=4)
+        
+        return result
 
 
     def test(self, query):
@@ -85,4 +91,4 @@ class Client():
         # decrypt and decode ciphertext
         decoded = self.encoder.decode(self.decryptor.decrypt(entry))[0]
         
-        print(decoded)
+        print(f"\n{decoded}\n")

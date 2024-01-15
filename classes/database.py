@@ -5,6 +5,7 @@ from faker import Faker
 
 from classes.query import Query
 
+
 class Database():
     def __init__(self):
         # initialize BFV scheme parameters
@@ -42,8 +43,8 @@ class Database():
         # Random names generator
         fake = Faker()
 
+        # Generate random dataset
         for _ in range(1000):
-
             name = fake.name()
             age = random.randint(1, 99)
             gender = random.choice(genders)
@@ -73,7 +74,7 @@ class Database():
         self.random_entries.append(test)
 
 
-    def optimize_dataset(self, query) -> list:
+    def optimize_dataset(self, query) -> list[dict]:
         search_medicines = query.medicine
         search_side_effects = query.side_effects
 
