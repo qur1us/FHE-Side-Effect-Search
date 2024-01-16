@@ -1,3 +1,5 @@
+import os
+import time
 import json
 import numpy as np
 import seal
@@ -29,14 +31,14 @@ class Database():
         self.optimized_dataset = []
 
 
-    def generate_random(self):
+    def generate_random(self) -> None:
         """
         This function generates a random dataset. The dataset consist of the following:
         - Random name
         - Random age
         - Random gender
         - List of a random size consisting of random medicines
-        - List of a side effect that would most probably be caused by the medicines
+        - List of side effects that would most probably be caused by the medicines
         
         The list of side effects is generated based on randomly generated correlation
         matrix. This ensures that there is some order in the data.
@@ -47,72 +49,85 @@ class Database():
         of the probabilities.
         """
         
-        # Parameters
-        NUM_MEDICINES = 200
-        NUM_SIDE_EFFECTS = 20
-        NUM_ENTRIES = 10000
-        MAX_PATIENT_MEDICINES = 10
-        MAX_PATIENT_SIDE_EFFECTS = 5
+        if not os.path.exists("dataset.json"):
+            # Parameters
+            NUM_MEDICINES = 200
+            NUM_SIDE_EFFECTS = 20
+            NUM_ENTRIES = 10000
+            MAX_PATIENT_MEDICINES = 10
+            MAX_PATIENT_SIDE_EFFECTS = 5
 
-        # List of side effects
-        medicines_list = list(range(1, NUM_MEDICINES + 1))
+            # List of side effects
+            medicines_list = list(range(1, NUM_MEDICINES + 1))
 
-        # List of side effects
-        side_effect_list = list(range(1, NUM_SIDE_EFFECTS + 1))
+            # List of side effects
+            side_effect_list = list(range(1, NUM_SIDE_EFFECTS + 1))
 
-        # List of genders
-        genders = ['male', 'female']
+            # List of genders
+            genders = ['male', 'female']
 
-        # List of actions
-        actions = ['Stop', 'Drink', 'Double']
+            # List of actions
+            actions = ['Stop', 'Drink', 'Double']
 
-        # Random names generator
-        fake = Faker()
+            # Random names generator
+            fake = Faker()
 
-        # Create a matrix representing the probability of each medicine causing each side effect
-        correlation_matrix = np.random.rand(NUM_MEDICINES + 1, NUM_SIDE_EFFECTS + 1)
-        
-        # Generate random dataset
-        for _ in range(NUM_ENTRIES):
-            name = fake.name()
-            age = random.randint(1, 99)
-            gender = random.choice(genders)
+            # Create a matrix representing the probability of each medicine causing each side effect
+            correlation_matrix = np.random.rand(NUM_MEDICINES + 1, NUM_SIDE_EFFECTS + 1)
             
-            ######### IMPORTANT #########
-            # Here we apply the above matrix for probability distribution of one medicine to cause a specific side effect
+            # Generate random dataset
+            for _ in range(NUM_ENTRIES):
+                name = fake.name()
+                age = random.randint(1, 99)
+                gender = random.choice(genders)
+                
+                ######### IMPORTANT #########
+                # Here we apply the above matrix for probability distribution of one medicine to cause a specific side effect
 
-            # Generate random medicines
-            medicine = random.sample(medicines_list, k=random.randint(1, MAX_PATIENT_MEDICINES))
+                # Generate random medicines
+                medicines = random.sample(medicines_list, k=random.randint(1, MAX_PATIENT_MEDICINES))
 
-            # Generate random number of side effects
-            side_effect_count = random.randint(1, MAX_PATIENT_SIDE_EFFECTS)
+                # Generate random number of side effects
+                side_effect_count = random.randint(1, MAX_PATIENT_SIDE_EFFECTS)
 
-            # Sum correlations of the generated medicines' side effects based on the correlation matrix
-            side_effect_probs = np.sum(correlation_matrix[medicine], axis=0)
+                # Sum correlations of the generated medicines' side effects based on the correlation matrix
+                side_effect_probs = np.sum(correlation_matrix[medicines], axis=0)
 
-            # Normalize probabilities to ensure they sum to 1
-            side_effect_probs /= side_effect_probs.sum()
+                # Normalize probabilities to ensure they sum to 1
+                side_effect_probs /= side_effect_probs.sum()
+                
+                # Use multinomial calculations to produce indexes of side effects based on probabilities calculated in "side_effect_probs"
+                side_effect_indices = np.random.multinomial(side_effect_count, side_effect_probs[:len(side_effect_list)], size=1).nonzero()[1]
+                
+                side_effect = [side_effect_list[i] for i in side_effect_indices]
+                
+                action = f"{random.choice(actions)} {random.choice(medicines)}"
+
+                entry = {
+                    'name': name,
+                    'age': age,
+                    'gender': gender,
+                    'medicines': medicines,
+                    'side_effects': side_effect,
+                    'treatment' : action
+                }
+                
+                self.random_dataset.append(entry)
             
-            # Use multinomial calculations to produce indexes of side effects based on probabilities calculated in "side_effect_probs"
-            side_effect_indices = np.random.multinomial(side_effect_count, side_effect_probs[:len(side_effect_list)], size=1).nonzero()[1]
-            
-            side_effect = [side_effect_list[i] for i in side_effect_indices]
-            
-            action = f"{random.choice(actions)} {random.choice(medicine)}"
+            # Save the dataset
+            with open("dataset.json", "w") as f:
+                f.write(json.dumps(self.random_dataset))
+                print("[i] Wrote fresh dataset to file: dataset.json")
+        else:
+            print("[i] Loading dataset from a file: dataset.json")
 
-            entry = {
-                'name': name,
-                'age': age,
-                'gender': gender,
-                'medicine': medicine,
-                'side_effects': side_effect,
-                'treatment' : action
-            }
-            
-            self.random_dataset.append(entry)
+            # Load dataset from file
+            with open("dataset.json", "r") as f:
+                content = ''.join(f.readlines())
+                self.random_dataset = json.loads(content)
 
 
-    def optimize_dataset(self, query):
+    def optimize_dataset(self, query) -> None:
         """
         This function takes the user supplied query and uses non-FHE parameters
         (list of medicines and side effects) to filter the randomly generated dataset.
@@ -122,7 +137,7 @@ class Database():
 
         # Check if there is at least on medicine and side effect in the optimized dataset
         for entry in self.random_dataset:
-            if any(medicine in entry['medicine'] for medicine in query.medicine):
+            if any(medicine in entry['medicines'] for medicine in query.medicines):
                 if any(effect in entry['side_effects'] for effect in query.side_effects):
                     self.optimized_dataset.append(entry)
 
@@ -176,9 +191,16 @@ class Database():
 
         results = []
 
+        start_time = time.time()
+
         for entry in self.optimized_dataset:
             result: seal.Ciphertext = self.PIR_check(query, entry)
             results.append(result.to_string().hex())
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
+        print(f"[i] FHE subtraction completed after: {elapsed_time:.2f} seconds")
 
         return results
 

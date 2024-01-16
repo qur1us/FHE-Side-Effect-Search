@@ -2,8 +2,8 @@ import json
 
 
 class Query:
-    def __init__(self, medicine: list[int], side_effects: list[int], encrypted_m: str) -> None:
-        self.medicine = medicine
+    def __init__(self, medicines: list[int], side_effects: list[int], encrypted_m: str) -> None:
+        self.medicines = medicines
         self.side_effects = side_effects
         self.encrypted_m = encrypted_m
 
@@ -18,7 +18,7 @@ class Query:
         data = json.loads(serialized_query)
 
         return cls(
-            medicine=data['medicine'],
+            medicines=data['medicines'],
             side_effects=data['side_effects'],
             encrypted_m=data['encrypted_m']
         )
@@ -30,7 +30,7 @@ class Query:
         """
 
         return json.dumps({
-            "medicine": self.medicine,
+            "medicines": self.medicines,
             "side_effects": self.side_effects,
             "encrypted_m": self.encrypted_m
         })

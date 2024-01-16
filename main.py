@@ -26,20 +26,20 @@ def main():
     endpoint = args.endpoint
     age = args.age
     gender = args.gender
-    medicine = args.medicine_ids
+    medicines = args.medicine_ids
     side_effects = args.side_effect_ids
     outfile = args.outfile
 
     print("\n[i] Supplied information:")
     print(f"\tAge: {age}")
     print(f"\tGender: {gender}")
-    print(f"\tMedicine IDs: {medicine}")
+    print(f"\tMedicine IDs: {medicines}")
     print(f"\tSide Effect IDs: {side_effects}")
 
     start_time = time.time()
     
     print("[*] Preparing query")
-    query = client.prepare_query(medicine, side_effects, age, gender)
+    query = client.prepare_query(medicines, side_effects, age, gender)
 
     print("[*] Querying the information...")
     result = client.search(endpoint, query.serialize())
@@ -47,7 +47,7 @@ def main():
     end_time = time.time()
     elapsed_time = end_time - start_time
 
-    print(f"[i] Query finished after {elapsed_time:.2f} seconds")
+    print(f"[i] Query finished after a total of {elapsed_time:.2f} seconds")
 
     print("[+] Finished successfully")
 

@@ -1,3 +1,4 @@
+import time
 import seal
 import json
 import urllib3
@@ -75,6 +76,8 @@ class Client():
         hit: bool = False
         indexes: list = []
 
+        start_time = time.time()
+
         for result in results:
             # Deserialize ciphertext
             entry = self.context.from_cipher_str(bytes.fromhex(result))
@@ -93,6 +96,11 @@ class Client():
         if not hit:
             print("[x] Entry not found")
             exit(1)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
+        print(f"[i] FHE results decryption completed after: {elapsed_time:.2f} seconds")
 
         data: str = json.dumps(indexes)
         response: requests.Response = requests.get(endpoint +  '?indexes=' + data, verify=False)
