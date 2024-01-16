@@ -8,6 +8,7 @@ from classes.query import Query
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+
 class Client():
     def __init__(self) -> None:
         # initialize BFV scheme parameters
@@ -31,6 +32,12 @@ class Client():
 
 
     def prepare_query(self, medicine: list, side_effects: list, age: int, gender: str) -> Query:
+        """
+        This function merges age and gender to a sigle parameter based on the reserach paper.
+        Then the function encrypts this parameter using FHE, combines it with lists of
+        medicines and side effects and returns a object representing the user query.
+        """
+
         m = 0
         R = 5
 
@@ -48,6 +55,19 @@ class Client():
         
 
     def search(self, endpoint: str, data: str) -> str:
+        """
+        This is the main search function for the client. This function communicates with
+        the query endpoint and sends the query. After getting a response from the server
+        functions iterates over the array representing the results of FHE subtraction on
+        server side and checks which entry is 0.
+
+        If the entry in the restul array is equal to zero, that means that there is
+        a match in the database data on the zero element's index.
+
+        Then function requests data from the query endpoint based on the indexes found
+        in the previous steps.
+        """
+
         response: requests.Response = requests.post(endpoint, data=data, verify=False)
         
         results: list = json.loads(response.text)
@@ -56,7 +76,6 @@ class Client():
         indexes: list = []
 
         for result in results:
-            
             # Deserialize ciphertext
             entry = self.context.from_cipher_str(bytes.fromhex(result))
             
@@ -76,19 +95,10 @@ class Client():
             exit(1)
 
         data: str = json.dumps(indexes)
-
         response: requests.Response = requests.get(endpoint +  '?indexes=' + data, verify=False)
 
-        result = json.dumps(json.loads(response.text), indent=4)
+        # Load the response as dicitonary, then prepare for pretty print to the console
+        result = json.loads(response.text)
+        result_pretty = json.dumps(result, indent=4)
         
-        return result
-
-
-    def test(self, query):
-        # Deserialize ciphertext
-        entry = self.context.from_cipher_str(bytes.fromhex(query.encrypted_m))
-        
-        # decrypt and decode ciphertext
-        decoded = self.encoder.decode(self.decryptor.decrypt(entry))[0]
-        
-        print(f"\n{decoded}\n")
+        return result_pretty

@@ -82,6 +82,7 @@ class Server():
             parsed_url = urllib.parse.urlparse(self.path)
             query_params = urllib.parse.parse_qs(parsed_url.query)
 
+            # Extract indexes from the query and return data based on the indexes
             if 'indexes' in query_params:
                 try:
                     indexes = json.loads(query_params['indexes'][0])

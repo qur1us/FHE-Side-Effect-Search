@@ -30,6 +30,23 @@ class Database():
 
 
     def generate_random(self):
+        """
+        This function generates a random dataset. The dataset consist of the following:
+        - Random name
+        - Random age
+        - Random gender
+        - List of a random size consisting of random medicines
+        - List of a side effect that would most probably be caused by the medicines
+        
+        The list of side effects is generated based on randomly generated correlation
+        matrix. This ensures that there is some order in the data.
+        
+        E.g. medicine 1 has a higher chance to cause side effect 3 than others, etc.
+
+        This is achieved by aforementioined correlation matrix and multinomial distribution
+        of the probabilities.
+        """
+        
         # Parameters
         NUM_MEDICINES = 200
         NUM_SIDE_EFFECTS = 20
@@ -96,17 +113,25 @@ class Database():
 
 
     def optimize_dataset(self, query):
-        search_medicines = query.medicine
-        search_side_effects = query.side_effects
+        """
+        This function takes the user supplied query and uses non-FHE parameters
+        (list of medicines and side effects) to filter the randomly generated dataset.
+        This enusres that the exhaustive FHE operations are performed on a smaller
+        sample lowering computing and memory complexity.
+        """
 
         # Check if there is at least on medicine and side effect in the optimized dataset
         for entry in self.random_dataset:
-            if any(medicine in entry['medicine'] for medicine in search_medicines):
-                if any(effect in entry['side_effects'] for effect in search_side_effects):
+            if any(medicine in entry['medicine'] for medicine in query.medicine):
+                if any(effect in entry['side_effects'] for effect in query.side_effects):
                     self.optimized_dataset.append(entry)
 
     
     def prepare_PIR_data(self, gender: str, age: int) -> int:
+        """
+        This function merges age and gender to a sigle parameter based on the reserach paper.
+        """
+        
         m = 0
         R = 5
 
@@ -119,6 +144,12 @@ class Database():
 
 
     def PIR_check(self, query: Query, entry: dict) -> seal.Ciphertext:
+        """
+        This function performs the FHE operation on the user supplied ciphertext in the query.
+        More precisely, the function goes through patient data and creates a plaintext from
+        the patient's age and gender and subtracts it from the user supplied ciphertext.
+        """
+        
         query_m = self.context.from_cipher_str(bytes.fromhex(query.encrypted_m))
 
         m = self.prepare_PIR_data(entry['gender'], int(entry['age']))
@@ -134,7 +165,12 @@ class Database():
         return result
 
 
-    def search(self, query: Query):
+    def search(self, query: Query) -> list[str]:
+        """
+        This is the main search function. Function takes the user supplied query and returns
+        an array of ouputs of FHE opereations. These outputs represent whether to query
+        actually got a result back on a specific index (computed on the client side).
+        """
 
         self.optimize_dataset(query)
 
@@ -148,6 +184,11 @@ class Database():
 
 
     def get_data(self, indexes: list) -> str:
+        """
+        This function serves to retrieve data from the optimized dataset based on
+        user supplied indexes (results from FHE operations on client side).
+        """
+        
         result: list[dict] = []
         
         # Filter keys so no personal info is disclosed
