@@ -10,7 +10,7 @@ This is a project for my Modern Cryptography course at Brno University of Techno
 &emsp;1\.1 [How does it work](#11-how-does-it-work)<br>
 &emsp;1\.2 [Performance analysis](#12-performance-analysis)<br>
 &emsp;&emsp;1\.2\.1 [Conclusion](#121-conclusion)<br>
-2\. [Observations](#13-observations)<br>
+2\. [Observations](#2-observations)<br>
 
 ## Usage
 
