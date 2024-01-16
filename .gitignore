@@ -2,3 +2,4 @@ __pycache__/
 classes/__pycache__/
 seal.cpython-310-x86_64-linux-gnu.so
 output.json
+dataset.json
