@@ -1,6 +1,16 @@
 # FHE-Side-Effect-Search
+
 This is a project for my Modern Cryptography course at Brno University of Technology. The main goal of the project is to demonstrate a privacy preserving database query system. The project utilizes homomorphic encryption to query data from a database based on sensitive patient information without revealing it to the server that holds the database.
 
+## Table of contents
+
+[Usage](#usage)<br>
+
+1\. [Analysis](#analysis)
+1\.1 [How does it work](#11-how-does-it-work)<br>
+1\.2 [Performance analysis](#12-performance-analysis)<br>
+&emsp;1\.2\.1 [Conclusion](#121-conclusion)<br>
+2\. [Observations](#13-observations)<br>
 
 ## Usage
 
@@ -81,9 +91,9 @@ $ python3 main.py https://127.0.0.1:8000/query --age 30 --gender male --medicine
 ]
 ```
 
-# Analysis
+# 1. Analysis
 
-## How does it work
+## 1.1 How does it work
 
 Before we begin with analyzing and benchmarking, it's important to identify the parameters that enter the system. In this case we are dealing with these parameters:
 - Number of entries in a database
@@ -119,9 +129,51 @@ After the dataset optimization we can start to perform the some FHE calculations
 
 When the client receives the aforementioned list of subtraction results, the individual values are decrypted and plaintexts observed. If there is a match in the dataset, then a particular element in the list will be of a value zero. Client iterates over the list and looks for elements that yield zero after decryption. Each zero then provides an index on which the desired entry is stored. Client can then use these indexes to query specific entries from the database.
 
-## Observations
+## 1.2 Performance analysis
 
-From the above description of how the program works, a couple of things can be observed, mainly the parameters that have a *direct* and *indirect* influence on the performance of the FHE calculations. Please note, that we are talking about parameters with influence on the performance of the FHE calculations, not the performance of the whole program.
+To test the performance, we can play with the system parameters to determine which may or may not have an influence on the overall system's and FHE computation's performance. Let's introduce the stock parameters.
+
+| Total entries | Number of medicines | Number of side effects |
+| ---- | ---- | ---- |
+| 10000 | 200 | 20 |
+
+By running the program we can observe these results:
+
+| FHE subtraction | FHE decryption | Total time of execution |
+| ---- | ---- | ---- |
+| 1.93s | 1.83s | 4.03s |
+
+If we keep the number of total entries and adjust the number of possible medicines and side effects we can observe the following:
+
+| Total entries | Number of medicines | Number of side effects |
+| ---- | ---- | ---- |
+| 10000 | 20 | 10 |
+
+This results in significant **increase** of time required to perform the calculations.
+
+| FHE subtraction | FHE decryption | Total time of execution |
+| ---- | ---- | ---- |
+| 23.34s | 21.70s | 50.24s |
+
+If we do the opposite and increase both numbers of possible medicines and side effects we get get the following results:
+
+| Total entries | Number of medicines | Number of side effects |
+| ---- | ---- | ---- |
+| 10000 | 2000 | 1000 |
+
+This results in significant **decrease** of time required to perform the calculations.
+
+| FHE subtraction | FHE decryption | Total time of execution |
+| ---- | ---- | ---- |
+| 0.12s | 0.16s | 0.34s |
+
+### 1.2.1 Conclusion
+
+What we did, is we changed a coupe of non-FHE parameters and observed how the system would perform. We did not change any parameters, that are encrypted using FHE. To conclude, parameters that contribute to dataset optimization (number of medicines, number of side effects) have **significant** impact on the overall system's performance, mainly on number of FHE operations the program has to perform.
+
+# 2. Observations
+
+From the above description of how the program works and performance analysis, a couple of things can be observed, mainly the parameters that have a *direct* and *indirect* influence on the performance of the FHE calculations. Please note, that we are talking about parameters with influence on the performance of the FHE calculations, not the performance of the whole program.
 
 The main parameter that has a *direct* influence on the performance of the FHE calculations is the size of the optimized dataset. When there are a lost of matches for the lists of medicines and side effects during the optimization phase, this still may yield a large dataset upon which the FHE calculations will be performed.
 
