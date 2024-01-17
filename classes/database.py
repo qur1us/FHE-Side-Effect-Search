@@ -1,10 +1,8 @@
-import os
 import time
 import json
-import numpy as np
 import seal
 import random
-from faker import Faker
+
 
 from classes.query import Query
 
@@ -31,100 +29,13 @@ class Database():
         self.optimized_dataset = []
 
 
-    def generate_random(self) -> None:
-        """
-        This function generates a random dataset. The dataset consist of the following:
-        - Random name
-        - Random age
-        - Random gender
-        - List of a random size consisting of random medicines
-        - List of side effects that would most probably be caused by the medicines
-        
-        The list of side effects is generated based on randomly generated correlation
-        matrix. This ensures that there is some order in the data.
-        
-        E.g. medicine 1 has a higher chance to cause side effect 3 than others, etc.
+    def load_dataset(self) -> None:
+        print("[i] Loading dataset from a file: dataset.json")
 
-        This is achieved by aforementioined correlation matrix and multinomial distribution
-        of the probabilities.
-        """
-        
-        if not os.path.exists("dataset.json"):
-            # Parameters
-            NUM_MEDICINES = 200
-            NUM_SIDE_EFFECTS = 20
-            NUM_ENTRIES = 10000
-            MAX_PATIENT_MEDICINES = 10
-            MAX_PATIENT_SIDE_EFFECTS = 5
-
-            # List of side effects
-            medicines_list = list(range(1, NUM_MEDICINES + 1))
-
-            # List of side effects
-            side_effect_list = list(range(1, NUM_SIDE_EFFECTS + 1))
-
-            # List of genders
-            genders = ['male', 'female']
-
-            # List of actions
-            actions = ['Stop', 'Drink', 'Double']
-
-            # Random names generator
-            fake = Faker()
-
-            # Create a matrix representing the probability of each medicine causing each side effect
-            correlation_matrix = np.random.rand(NUM_MEDICINES + 1, NUM_SIDE_EFFECTS + 1)
-            
-            # Generate random dataset
-            for _ in range(NUM_ENTRIES):
-                name = fake.name()
-                age = random.randint(1, 99)
-                gender = random.choice(genders)
-                
-                ######### IMPORTANT #########
-                # Here we apply the above matrix for probability distribution of one medicine to cause a specific side effect
-
-                # Generate random medicines
-                medicines = random.sample(medicines_list, k=random.randint(1, MAX_PATIENT_MEDICINES))
-
-                # Generate random number of side effects
-                side_effect_count = random.randint(1, MAX_PATIENT_SIDE_EFFECTS)
-
-                # Sum correlations of the generated medicines' side effects based on the correlation matrix
-                side_effect_probs = np.sum(correlation_matrix[medicines], axis=0)
-
-                # Normalize probabilities to ensure they sum to 1
-                side_effect_probs /= side_effect_probs.sum()
-                
-                # Use multinomial calculations to produce indexes of side effects based on probabilities calculated in "side_effect_probs"
-                side_effect_indices = np.random.multinomial(side_effect_count, side_effect_probs[:len(side_effect_list)], size=1).nonzero()[1]
-                
-                side_effect = [side_effect_list[i] for i in side_effect_indices]
-                
-                action = f"{random.choice(actions)} {random.choice(medicines)}"
-
-                entry = {
-                    'name': name,
-                    'age': age,
-                    'gender': gender,
-                    'medicines': medicines,
-                    'side_effects': side_effect,
-                    'treatment' : action
-                }
-                
-                self.random_dataset.append(entry)
-            
-            # Save the dataset
-            with open("dataset.json", "w") as f:
-                f.write(json.dumps(self.random_dataset))
-                print("[i] Wrote fresh dataset to file: dataset.json")
-        else:
-            print("[i] Loading dataset from a file: dataset.json")
-
-            # Load dataset from file
-            with open("dataset.json", "r") as f:
-                content = ''.join(f.readlines())
-                self.random_dataset = json.loads(content)
+        # Load dataset from file
+        with open("dataset.json", "r") as f:
+            content = ''.join(f.readlines())
+            self.random_dataset = json.loads(content)
 
 
     def optimize_dataset(self, query) -> None:
@@ -142,39 +53,21 @@ class Database():
                     self.optimized_dataset.append(entry)
 
     
-    def prepare_PIR_data(self, gender: str, age: int) -> int:
+    def FHE_difference(self, query: Query, entry: dict) -> seal.Ciphertext:
         """
-        This function merges age and gender to a sigle parameter based on the reserach paper.
-        """
-        
-        m = 0
-        R = 5
-
-        if gender == 'male':
-            m = age + R
-        elif gender == 'female':
-            m = age + 128 + R
-        
-        return m
-
-
-    def PIR_check(self, query: Query, entry: dict) -> seal.Ciphertext:
-        """
-        This function performs the FHE operation on the user supplied ciphertext in the query.
-        More precisely, the function goes through patient data and creates a plaintext from
-        the patient's age and gender and subtracts it from the user supplied ciphertext.
+        This function performs the FHE subtraction on the user supplied ciphertext in the query.
+        More precisely, the function subtracts encrypted 'm' parameter from a database entry 
+        from the user supplied ciphertext effectively calculating difference between two
+        ciphertexts.
         """
         
         query_m = self.context.from_cipher_str(bytes.fromhex(query.encrypted_m))
-
-        m = self.prepare_PIR_data(entry['gender'], int(entry['age']))
-
-        entry_m = seal.Plaintext(hex(m)[2::])
-    
-        diff = self.evaluator.sub_plain(query_m, entry_m)
+        entry_m = self.context.from_cipher_str(bytes.fromhex(entry['encrypted_m']))
+        
+        diff = self.evaluator.sub(query_m, entry_m)
 
         # Multiply difference by random number
-        r = self.encoder.encode([random.randint(1, 10000) for _ in range(m)])
+        r = self.encoder.encode([random.randint(1, 10000) for _ in range(256)])
         result = self.evaluator.multiply_plain(diff, r)
 
         return result
@@ -194,7 +87,7 @@ class Database():
         start_time = time.time()
 
         for entry in self.optimized_dataset:
-            result: seal.Ciphertext = self.PIR_check(query, entry)
+            result: seal.Ciphertext = self.FHE_difference(query, entry)
             results.append(result.to_string().hex())
 
         end_time = time.time()
@@ -215,7 +108,7 @@ class Database():
         
         # Filter keys so no personal info is disclosed
         for index in indexes:
-            filtered_entry = {key: value for key, value in self.optimized_dataset[index].items() if key not in ['name', 'age', 'gender']}
+            filtered_entry = {key: value for key, value in self.optimized_dataset[index].items() if key not in ['name', 'encrypted_m']}
             result.append(filtered_entry)
 
         # Clear the optimized dataset, next query has to have a fresh instance

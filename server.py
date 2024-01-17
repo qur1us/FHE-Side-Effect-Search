@@ -15,7 +15,7 @@ KEY_FILE = '/tmp/private_key.pem'
 class Server():
     def __init__(self) -> None:
         self.database = Database()
-        self.database.generate_random()
+        self.database.load_dataset()
 
 
     class ServerHTTPHandler(BaseHTTPRequestHandler):
@@ -105,7 +105,6 @@ class Server():
         # Create an SSL context
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ssl_context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
-
 
         httpd = HTTPServer(server_address, lambda request, client_address, server: self.ServerHTTPHandler(request, client_address, server, self.database))
         httpd.socket = ssl_context.wrap_socket(httpd.socket, server_side=True)
