@@ -3,7 +3,6 @@ import json
 import seal
 import random
 
-
 from classes.query import Query
 
 
@@ -110,8 +109,5 @@ class Database():
         for index in indexes:
             filtered_entry = {key: value for key, value in self.optimized_dataset[index].items() if key not in ['name', 'encrypted_m']}
             result.append(filtered_entry)
-
-        # Clear the optimized dataset, next query has to have a fresh instance
-        self.optimized_dataset.clear()
 
         return json.dumps(result)

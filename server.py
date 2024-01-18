@@ -1,7 +1,7 @@
 import json
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import ssl  # Import the ssl module
+import ssl
 
 from classes.database import Database
 from classes.query import Query
@@ -59,6 +59,9 @@ class Server():
 
             # Deserialize the query
             query = Query.deserialize(post_data)
+
+            # Clear the optimized dataset, next query has to have a fresh instance
+            self.database.optimized_dataset.clear()
 
             # Search the database using the query
             results = self.database.search(query)
