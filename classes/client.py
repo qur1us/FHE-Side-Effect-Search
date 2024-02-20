@@ -35,9 +35,7 @@ class Client:
         # initialize encryptor and decryptors with keys
         keygen = seal.KeyGenerator(self.context)
 
-        if not os.path.exists("public_key.bin") and not os.path.exists(
-            "secret_key.bin"
-        ):
+        if not os.path.exists("public_key.bin") and not os.path.exists("secret_key.bin"):
             public_key = keygen.create_public_key()
             secret_key = keygen.secret_key()
 
@@ -159,8 +157,7 @@ class Client:
                 encryptor_treatment = cipher.encryptor()
                 treatment = f"{random.choice(treatments)} {random.choice(medicines)}"
                 treatment_encrypted = (
-                    encryptor_treatment.update(treatment.encode())
-                    + encryptor_treatment.finalize()
+                    encryptor_treatment.update(treatment.encode()) + encryptor_treatment.finalize()
                 )
 
                 entry = {
@@ -202,9 +199,7 @@ class Client:
         )
 
         decryptor = cipher.decryptor()
-        decrypted_treatment = (
-            decryptor.update(encrypted_treatment) + decryptor.finalize()
-        )
+        decrypted_treatment = decryptor.update(encrypted_treatment) + decryptor.finalize()
 
         return decrypted_treatment
 
@@ -241,9 +236,7 @@ class Client:
 
         return encrypted_m
 
-    def prepare_query(
-        self, medicine: list, side_effects: list, age: int, gender: str
-    ) -> Query:
+    def prepare_query(self, medicine: list, side_effects: list, age: int, gender: str) -> Query:
         """
         This function combines encrypted m with lists of medicines and side effects
         and returns a object representing the user query.
@@ -302,9 +295,7 @@ class Client:
         print(f"[i] FHE results decryption completed after: {elapsed_time:.2f} seconds")
 
         data: str = json.dumps(indexes)
-        response: requests.Response = requests.get(
-            endpoint + "?indexes=" + data, verify=False
-        )
+        response: requests.Response = requests.get(endpoint + "?indexes=" + data, verify=False)
 
         # Load the response as dicitonary, decrypt, then prepare for pretty print to the console
         result = json.loads(response.text)

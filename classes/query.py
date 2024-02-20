@@ -2,9 +2,7 @@ import json
 
 
 class Query:
-    def __init__(
-        self, medicines: list[int], side_effects: list[int], encrypted_m: str
-    ) -> None:
+    def __init__(self, medicines: list[int], side_effects: list[int], encrypted_m: str) -> None:
         self.medicines = medicines
         self.side_effects = side_effects
         self.encrypted_m = encrypted_m

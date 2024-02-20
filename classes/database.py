@@ -46,9 +46,7 @@ class Database:
         # Check if there is at least on medicine and side effect in the optimized dataset
         for entry in self.random_dataset:
             if any(medicine in entry["medicines"] for medicine in query.medicines):
-                if any(
-                    effect in entry["side_effects"] for effect in query.side_effects
-                ):
+                if any(effect in entry["side_effects"] for effect in query.side_effects):
                     self.optimized_dataset.append(entry)
 
     def FHE_difference(self, query: Query, entry: dict) -> seal.Ciphertext:
