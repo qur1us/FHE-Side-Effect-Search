@@ -6,7 +6,7 @@ import random
 from classes.query import Query
 
 
-class Database():
+class Database:
     def __init__(self):
         # initialize BFV scheme parameters
         params = seal.EncryptionParameters(seal.scheme_type.bfv)
@@ -27,15 +27,13 @@ class Database():
         self.random_dataset = []
         self.optimized_dataset = []
 
-
     def load_dataset(self) -> None:
         print("[i] Loading dataset from a file: dataset.json")
 
         # Load dataset from file
         with open("dataset.json", "r") as f:
-            content = ''.join(f.readlines())
+            content = "".join(f.readlines())
             self.random_dataset = json.loads(content)
-
 
     def optimize_dataset(self, query) -> None:
         """
@@ -47,22 +45,23 @@ class Database():
 
         # Check if there is at least on medicine and side effect in the optimized dataset
         for entry in self.random_dataset:
-            if any(medicine in entry['medicines'] for medicine in query.medicines):
-                if any(effect in entry['side_effects'] for effect in query.side_effects):
+            if any(medicine in entry["medicines"] for medicine in query.medicines):
+                if any(
+                    effect in entry["side_effects"] for effect in query.side_effects
+                ):
                     self.optimized_dataset.append(entry)
 
-    
     def FHE_difference(self, query: Query, entry: dict) -> seal.Ciphertext:
         """
         This function performs the FHE subtraction on the user supplied ciphertext in the query.
-        More precisely, the function subtracts encrypted 'm' parameter from a database entry 
+        More precisely, the function subtracts encrypted 'm' parameter from a database entry
         from the user supplied ciphertext effectively calculating difference between two
         ciphertexts.
         """
-        
+
         query_m = self.context.from_cipher_str(bytes.fromhex(query.encrypted_m))
-        entry_m = self.context.from_cipher_str(bytes.fromhex(entry['encrypted_m']))
-        
+        entry_m = self.context.from_cipher_str(bytes.fromhex(entry["encrypted_m"]))
+
         diff = self.evaluator.sub(query_m, entry_m)
 
         # Multiply difference by random number
@@ -70,7 +69,6 @@ class Database():
         result = self.evaluator.multiply_plain(diff, r)
 
         return result
-
 
     def search(self, query: Query) -> list[str]:
         """
@@ -96,18 +94,21 @@ class Database():
 
         return results
 
-
     def get_data(self, indexes: list) -> str:
         """
         This function serves to retrieve data from the optimized dataset based on
         user supplied indexes (results from FHE operations on client side).
         """
-        
+
         result: list[dict] = []
-        
+
         # Filter keys so no personal info is disclosed
         for index in indexes:
-            filtered_entry = {key: value for key, value in self.optimized_dataset[index].items() if key not in ['name', 'encrypted_m']}
+            filtered_entry = {
+                key: value
+                for key, value in self.optimized_dataset[index].items()
+                if key not in ["name", "encrypted_m"]
+            }
             result.append(filtered_entry)
 
         return json.dumps(result)
