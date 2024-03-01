@@ -11,7 +11,7 @@ class Database:
         # initialize BFV scheme parameters
         params = seal.EncryptionParameters(seal.scheme_type.bfv)
 
-        poly_modulus_degree = 4096
+        poly_modulus_degree = 8192
         params.set_poly_modulus_degree(poly_modulus_degree)
         params.set_coeff_modulus(seal.CoeffModulus.BFVDefault(poly_modulus_degree))
         params.set_plain_modulus(seal.PlainModulus.Batching(poly_modulus_degree, 20))
@@ -26,6 +26,9 @@ class Database:
 
         self.random_dataset = []
         self.optimized_dataset = []
+
+        self.relin_keys = seal.RelinKeys()
+        self.relin_keys.load(self.context, "relin_keys.bin")
 
     def load_dataset(self) -> None:
         print("[i] Loading dataset from a file: dataset.json")
@@ -49,6 +52,34 @@ class Database:
                 if any(effect in entry["side_effects"] for effect in query.side_effects):
                     self.optimized_dataset.append(entry)
 
+    def prepare_ciphertexts(self, query: Query, radius: int) -> list[seal.Ciphertext]:
+        """
+        This funcition takes the user supplied ciphertext and returns an array of ciphertexts
+        that represent the users age from range +- radius
+        """
+
+        ciphertext = self.context.from_cipher_str(bytes.fromhex(query.encrypted_m))
+
+        ciphertexts: list[seal.Ciphertext] = []
+        plain_one = seal.Plaintext("1")
+
+        new_ciphertext = ciphertext
+
+        for _ in range(radius):
+            new_ciphertext: seal.Ciphertext = self.evaluator.sub_plain(new_ciphertext, plain_one)
+
+            ciphertexts.append(new_ciphertext)
+
+        ciphertexts.append(ciphertext)
+
+        new_ciphertext = ciphertext
+
+        for _ in range(radius):
+            new_ciphertext: seal.Ciphertext = self.evaluator.add_plain(new_ciphertext, plain_one)
+            ciphertexts.append(new_ciphertext)
+
+        return ciphertexts
+
     def FHE_difference(self, query: Query, entry: dict) -> seal.Ciphertext:
         """
         This function performs the FHE subtraction on the user supplied ciphertext in the query.
@@ -68,6 +99,26 @@ class Database:
 
         return result
 
+    def FHE_difference_radius(
+        self, ciphertexts: list[seal.Ciphertext], entry: dict
+    ) -> seal.Ciphertext:
+        entry_m = self.context.from_cipher_str(bytes.fromhex(entry["encrypted_m"]))
+
+        diffs: list[seal.Ciphertext] = []
+
+        for ciphertext in ciphertexts:
+            res = self.evaluator.sub(ciphertext, entry_m)
+            diffs.append(res)
+
+        # Initialize result with the first ciphertext
+        result = diffs[0]
+
+        # Iterate over the rest of the ciphertexts
+        for diff in diffs[1:]:
+            self.evaluator.multiply_inplace(result, diff)
+
+        return result
+
     def search(self, query: Query) -> list[str]:
         """
         This is the main search function. Function takes the user supplied query and returns
@@ -76,14 +127,19 @@ class Database:
         """
 
         self.optimize_dataset(query)
+        ciphertexts_radius: list[seal.Ciphertext] = self.prepare_ciphertexts(query, 2)
 
-        results = []
+        results: list[str] = []
 
         start_time = time.time()
 
         for entry in self.optimized_dataset:
-            result: seal.Ciphertext = self.FHE_difference(query, entry)
+            # result: seal.Ciphertext = self.FHE_difference(query, entry)
+            result: seal.Ciphertext = self.FHE_difference_radius(ciphertexts_radius, entry)
             results.append(result.to_string().hex())
+
+            # for res in result:
+            #     results.append(res.to_string().hex())
 
         end_time = time.time()
         elapsed_time = end_time - start_time

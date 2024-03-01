@@ -22,7 +22,7 @@ class Client:
         # initialize BFV scheme parameters
         params = seal.EncryptionParameters(seal.scheme_type.bfv)
 
-        poly_modulus_degree = 4096
+        poly_modulus_degree = 8192
         params.set_poly_modulus_degree(poly_modulus_degree)
         params.set_coeff_modulus(seal.CoeffModulus.BFVDefault(poly_modulus_degree))
         params.set_plain_modulus(seal.PlainModulus.Batching(poly_modulus_degree, 20))
@@ -38,10 +38,12 @@ class Client:
         if not os.path.exists("public_key.bin") and not os.path.exists("secret_key.bin"):
             public_key = keygen.create_public_key()
             secret_key = keygen.secret_key()
+            relin_keys = keygen.create_relin_keys()
 
             # Save keys to file
             public_key.save("public_key.bin")
             secret_key.save("secret_key.bin")
+            relin_keys.save("relin_keys.bin")
         else:
             # Load keys from file
             public_key = seal.PublicKey()
@@ -79,7 +81,7 @@ class Client:
             # Parameters
             NUM_MEDICINES = 200
             NUM_SIDE_EFFECTS = 20
-            NUM_ENTRIES = 1000
+            NUM_ENTRIES = 100
             MAX_PATIENT_MEDICINES = 10
             MAX_PATIENT_SIDE_EFFECTS = 5
 
@@ -163,6 +165,7 @@ class Client:
                 entry = {
                     "name": name_encrypted.hex(),
                     "encrypted_m": encrypted_m,
+                    "age": age,
                     "medicines": medicines,
                     "side_effects": side_effect,
                     "treatment": treatment_encrypted.hex(),
@@ -172,7 +175,19 @@ class Client:
 
             test = {
                 "name": "test",
+                "encrypted_m": self.prepare_m("male", 41).to_string().hex(),
+                "age": "41",
+                "medicines": [1, 2],
+                "side_effects": [1, 2],
+                "treatment": treatment_encrypted.hex(),
+            }
+
+            random_dataset.append(test)
+
+            test = {
+                "name": "test",
                 "encrypted_m": self.prepare_m("male", 40).to_string().hex(),
+                "age": "40",
                 "medicines": [1, 2],
                 "side_effects": [1, 2],
                 "treatment": treatment_encrypted.hex(),
@@ -222,7 +237,7 @@ class Client:
         """
 
         m = 0
-        R = 5
+        R = 0
 
         if gender == "male":
             m = age + R
